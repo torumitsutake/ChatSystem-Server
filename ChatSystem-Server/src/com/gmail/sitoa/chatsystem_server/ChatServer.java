@@ -36,23 +36,25 @@ private ArrayList<ChatClientUser> userList;
 	}
 	
 	public ChatRoom getChatRoom(String name){
-		ChatRoom chatroom = null;
 		
 		for(ChatRoom room:roomList){
 			if(room.getroomname().equalsIgnoreCase(name)){
-				chatroom = room;
+				return room;
 				
 			}
 			
 		}
+		return null;
 
-		return chatroom;
 
 	}
-	public ArrayList<ChatRoom> getChatRooms(){
+	public ChatRoom[] getChatRooms(){
+		ChatRoom[] result = new ChatRoom[roomList.size()];
+		for(int i = 0 ; i < roomList.size() ; i++) {
+			result[i] = roomList.get(i);
+		}
 		
-		
-		return roomList;
+		return result;
 		
 	}
 	public void removeChatRoom(ChatRoom room){
@@ -65,5 +67,37 @@ private ArrayList<ChatClientUser> userList;
 	
 	//ChatUser操作
 	
-
+	public void adduser(ChatClientUser user){
+		
+	}
+	
+	public ChatClientUser getUser(String name){
+		ChatClientUser clientuser = null;
+		for(ChatClientUser user:userList){
+			if(user.getname().equalsIgnoreCase(name)){
+				clientuser = user;
+			}
+		}
+		
+		
+		return clientuser;
+	}
+	public ArrayList<ChatClientUser> getUsers(){
+		return userList;
+	}
+	public void removeUser(ChatClientUser user){
+		userList.remove(user);
+	}
+	
+	public void clearUser(){
+		userList.clear();
+	}
+	
+	//スタートメゾット
+	public void start(){
+	
+		
+	}
+	
+	
 }
