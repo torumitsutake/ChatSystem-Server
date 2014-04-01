@@ -1,103 +1,157 @@
 package com.gmail.sitoa.chatsystem_server;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 
 public class ChatServer {
-private static ChatServer instance;
-
-private ArrayList<ChatRoom> roomList;
-private ArrayList<ChatClientUser> userList;
-//コンストラクタ
-	private ChatServer(){
-	    roomList = new ArrayList<ChatRoom>();
-	    userList = new ArrayList<ChatClientUser>();
+	public static void main(String[] args) throws FileNotFoundException {
+		PrintStream ps=new PrintStream("log.txt");
+	System.setOut(ps);
+		ChatServer application = ChatServer.getInstance();
+		application.start();
 	}
-	//getinstance　メゾット
-	public static ChatServer getInstance(){
 
+	//サーバーはシングルトン設計。唯一のインスタンス
+	private static ChatServer instance;
+	public static ChatServer getInstance() {
 		if (instance == null) {
-	        instance = new ChatServer();
-	    }
-
+			instance = new ChatServer();
+		}
 		return instance;
-
 	}
 
-	public static void main(String[] args) {
+	//サーバーソケット
+	private ServerSocket server;
 
+	//現在開いている部屋オブジェクトの動的配列
+	private ArrayList<ChatRoom> roomList;
 
+	//現在チャットに参加している全ユーザーの動的配列
+	private ArrayList<ChatClientUser> userList;
+
+	private ChatServer() {
+		roomList = new ArrayList<ChatRoom>();
+		userList = new ArrayList<ChatClientUser>();
 	}
 
-	public void addChatRoom(ChatRoom newroom,String name,String maker){
-		roomList.add(newroom);
-		newroom.setname(name);
-		newroom.setmaker(maker);
-		
-	}
-	
-	public ChatRoom getChatRoom(String name){
-		
-		for(ChatRoom room:roomList){
-			if(room.getroomname().equalsIgnoreCase(name)){
-				return room;
-				
+	//main メソッドから呼び出される
+	public void start() {
+		try {
+			server = new ServerSocket(25565);
+
+			while(!server.isClosed()) {
+				//新しいクライアントの接続を待つ
+				Socket client = server.accept();
+
+				//ユーザーオブジェクトを生成する
+				ChatClientUser user = new ChatClientUser(client);
+				addUser(user);
 			}
-			
+		}
+		catch(Exception err) {
+			err.printStackTrace();
+		}
+	}
+
+	//チャットルームを追加する
+	public void addChatRoom(ChatRoom room) {
+		if (roomList.contains(room)) return;
+
+		roomList.add(room);
+System.out.println("addRoom=[" + room + "]");
+
+		//すべてのユーザーにチャットルームが更新されたことを通知する
+		for(int i = 0 ; i < userList.size() ; i++) {
+			userList.get(i).reachedMessage("getRooms" , "");
+		}
+	}
+	//指定した名前のチャットルームを取得する
+	public ChatRoom getChatRoom(String name) {
+		for(int i = 0 ; i < roomList.size() ; i++) {
+			ChatRoom room = roomList.get(i);
+			if (name.equals(room.getName())) return room;
 		}
 		return null;
-
-
 	}
-	public ChatRoom[] getChatRooms(){
+	//チャットルームの配列を取得する
+	public ChatRoom[] getChatRooms() {
 		ChatRoom[] result = new ChatRoom[roomList.size()];
+
+		//現在開かれている部屋のリストを配列に移す
 		for(int i = 0 ; i < roomList.size() ; i++) {
 			result[i] = roomList.get(i);
 		}
-		
 		return result;
-		
 	}
-	public void removeChatRoom(ChatRoom room){
+	//チャットルームを削除する
+	public void removeChatRoom(ChatRoom room) {
 		roomList.remove(room);
-	}
-	public void clearChatRoom(){
-		roomList.clear();
-		
-	}
-	
-	//ChatUser操作
-	
-	public void adduser(ChatClientUser user){
-		
-	}
-	
-	public ChatClientUser getUser(String name){
-		ChatClientUser clientuser = null;
-		for(ChatClientUser user:userList){
-			if(user.getname().equalsIgnoreCase(name)){
-				clientuser = user;
-			}
+System.out.println("removeRoom=[" + room + "]");
+
+		//すべてのユーザーにチャットルームが更新されたことを通知する
+		for(int i = 0 ; i < userList.size() ; i++) {
+			userList.get(i).reachedMessage("getRooms" , "");
 		}
-		
-		
-		return clientuser;
 	}
-	public ArrayList<ChatClientUser> getUsers(){
-		return userList;
+	//すべてのチャットルームを削除する
+	public void clearChatRoom() {
+		roomList.clear();
+
+		//すべてのユーザーにチャットルームが更新されたことを通知する
+		for(int i = 0 ; i < userList.size() ; i++) {
+			userList.get(i).reachedMessage("getRooms" , "");
+		}
 	}
-	public void removeUser(ChatClientUser user){
+
+	//ユーザーを追加する
+	public void addUser(ChatClientUser user) {
+		if (userList.contains(user)) return;
+
+		userList.add(user);
+		user.setName("名無しさん");
+System.out.println("addUser=[" + user + "]");
+	}
+
+	//指定した名前のユーザーを取得する
+	public ChatClientUser getUser(String name) {
+		for(int i = 0 ; i < userList.size() ; i++) {
+			ChatClientUser user = userList.get(i);
+			if (user.getName().equals(name)) return user;
+		}
+		return null;
+	}
+
+	//すべてのユーザーを返す
+	public ChatClientUser[] getUsers() {
+		ChatClientUser[] users = new ChatClientUser[userList.size()];
+		userList.toArray(users);
+		return users;
+	}
+
+	//ユーザーを削除する
+	public void removeUser(ChatClientUser user) {
 		userList.remove(user);
+System.out.println("removeUser=[" + user + "]");
+
+		//サーバーからユーザーが解放される場合、すなわちユーザーはログアウトする
+		//すべての部屋を調べ、ユーザーを部屋から退席させる
+		for(int i = 0 ; i < roomList.size() ; i++) {
+			if (roomList.get(i).containsUser(user)) roomList.get(i).removeUser(user);
+		}
 	}
-	
-	public void clearUser(){
-		userList.clear();
+
+	//すべてのユーザーを削除する
+	public void clearUser() { userList.clear(); }
+
+	//サーバーを閉じて切断する
+	public void close() throws IOException {
+		server.close();
 	}
-	
-	//スタートメゾット
-	public void start(){
-	
-		
-	}
-	
-	
+
+
 }
