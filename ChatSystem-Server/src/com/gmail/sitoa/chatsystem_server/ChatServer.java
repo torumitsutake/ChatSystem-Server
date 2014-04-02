@@ -6,10 +6,11 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class ChatServer {
-	public static void main(String[] args) throws FileNotFoundException {
+	public static void main(String[] args) throws FileNotFoundException, ClassNotFoundException, SQLException {
 		PrintStream ps=new PrintStream("log.txt");
 	System.setOut(ps);
 		ChatServer application = ChatServer.getInstance();

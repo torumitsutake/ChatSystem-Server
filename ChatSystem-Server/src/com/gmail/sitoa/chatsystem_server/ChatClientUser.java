@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.EventListener;
 import java.util.EventObject;
@@ -85,10 +86,35 @@ System.out.println("INPUT=" + line);
 	System.exit(0);
 	}
 	if(line.matches("Login-"+".*")){
+		System.out.println("login");
+		Boolean loginok = false;
 		String[] idpass = line.split("-");
-		
-		
+		LoginClass login= new LoginClass();
+		login.connectdb("ChatLoginDB");
+		ResultSet result = login.responsquery("select password from users where id='"+idpass[1]+"'");
+		ArrayList<String> strs = new ArrayList<String>();
+		while(result.next()){
+			strs.add(result.getString("password"));
+			System.out.println(strs.get(0));
+			System.out.println(idpass[2]);
+
+		}
+		if(strs.size() == 1){
+			if(strs.get(0).trim().equals(idpass[2])){
+				loginok = true;
+			}
+			}
+
+		if(loginok){
+			sendMessage("successful");
+			System.out.println(idpass[1]+" is login!");
+		}else{
+
+			sendMessage("filled");
+		}
+
 	}
+
 
 				String[] msg = line.split(" ", 2);
 				String msgName = msg[0];
